@@ -41,10 +41,8 @@ impl Buffer {
   }
 
   pub fn read_u32(&mut self) -> Result<u32, Error> {
-    let res = ((self.read_u8()? as u32) << 24) |
-              ((self.read_u8()? as u32) << 16) |
-              ((self.read_u8()? as u32) << 8) |
-              ((self.read_u8()? as u32) << 0);
+    let res = ((self.read_u16()? as u32) << 16) |
+              (self.read_u16()? as u32);
     Ok(res)
   }
 
