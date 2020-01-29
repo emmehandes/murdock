@@ -19,6 +19,7 @@ impl Question {
   pub fn read(&mut self, buffer: &mut Buffer) -> Result<(), Error> {
     buffer.get_domain_name(&mut self.name)?;
     self.qtype = QueryType::from_num(buffer.read_u16()?);
+    let _ = buffer.read_u16()?;
     Ok(())
   }
 }

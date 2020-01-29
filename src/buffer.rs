@@ -1,7 +1,7 @@
 use std::io::{Error, ErrorKind};
 
 pub struct Buffer {
-  buf: [u8; 512],
+  pub buf: [u8; 512],
   pos: usize
 }
 
@@ -10,8 +10,6 @@ impl Buffer {
   pub fn new() -> Buffer {
     Buffer { buf: [0; 512], pos: 0 }
   }
-
-  pub fn pos(&self) -> usize { self.pos }
 
   fn get(&mut self, pos: usize) -> Result<u8, Error> {
     if pos >= 512 {
@@ -38,13 +36,15 @@ impl Buffer {
 
   pub fn read_u16(&mut self) -> Result<u16, Error> {
     let res = ((self.read_u8()? as u16) << 8) |
-               self.read_u8()? as u16;
+               (self.read_u8()? as u16);
     Ok(res)
   }
 
   pub fn read_u32(&mut self) -> Result<u32, Error> {
-    let res = ((self.read_u16()? as u32) << 16) |
-               self.read_u16()? as u32;
+    let res = ((self.read_u8()? as u32) << 24) |
+              ((self.read_u8()? as u32) << 16) |
+              ((self.read_u8()? as u32) << 8) |
+              ((self.read_u8()? as u32) << 0);
     Ok(res)
   }
 
@@ -63,7 +63,7 @@ impl Buffer {
       else if (len & 0xC0) == 0xC0 {
           // Check if a jump is needed
           if !jump {
-            self.pos = pos;
+            self.pos = pos+1;
           }
 
           // Perform jump

@@ -27,6 +27,7 @@ impl Packet {
 
   pub fn from_buffer(buffer: &mut Buffer) -> Result<Packet, Error> {
     let mut result = Packet::new();
+    result.header.read(buffer)?;
 
     for _ in 0..result.header.questions {
         let mut question = Question::new("".to_string(),
