@@ -1,6 +1,6 @@
-use crate::querytype::QueryType;
-use crate::buffer::Buffer;
 use std::io::Error;
+use crate::protocol::querytype::QueryType;
+use crate::protocol::buffer::Buffer;
 
 #[derive(Debug,Clone,PartialEq,Eq)]
 pub struct Question {
@@ -20,6 +20,13 @@ impl Question {
     buffer.get_domain_name(&mut self.name)?;
     self.qtype = QueryType::from_num(buffer.read_u16()?);
     let _ = buffer.read_u16()?;
+    Ok(())
+  }
+
+  pub fn write(&self, buffer: &mut Buffer) -> Result<(), Error> {
+    buffer.set_domain_name(&self.name)?;
+    buffer.write_u16(self.qtype.to_num())?;
+    buffer.write_u16(1)?;
     Ok(())
   }
 }
