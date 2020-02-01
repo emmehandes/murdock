@@ -1,6 +1,6 @@
 use std::io::Error;
-use crate::resultcode::ResultCode;
-use crate::buffer::Buffer;
+use crate::protocol::resultcode::ResultCode;
+use crate::protocol::buffer::Buffer;
 
 
 #[derive(Clone,Debug)]

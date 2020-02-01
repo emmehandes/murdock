@@ -1,15 +1,9 @@
-pub mod buffer;
-pub mod header;
-pub mod resultcode;
-pub mod querytype;
-pub mod question;
-pub mod record;
-pub mod packet;
+pub mod protocol;
 
 use std::io::Read;
 use std::fs::File;
-use crate::buffer::Buffer;
-use crate::packet::Packet;
+use crate::protocol::buffer::Buffer;
+use crate::protocol::packet::Packet;
 
 fn main() {
     let mut f = File::open("response_packet.txt").unwrap();

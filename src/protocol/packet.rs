@@ -1,9 +1,9 @@
 use std::io::Error;
-use crate::buffer::Buffer;
-use crate::header::Header;
-use crate::question::Question;
-use crate::querytype::QueryType;
-use crate::record::Record;
+use crate::protocol::buffer::Buffer;
+use crate::protocol::header::Header;
+use crate::protocol::question::Question;
+use crate::protocol::querytype::QueryType;
+use crate::protocol::record::Record;
 
 #[derive(Clone, Debug)]
 pub struct Packet {
