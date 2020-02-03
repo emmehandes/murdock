@@ -25,7 +25,8 @@ impl Packet {
     }
   }
 
-  pub fn from_buffer(buffer: &mut Buffer) -> Result<Packet, Error> {
+  // TODO: remove mutability of the buffer, a reading should not alter the buffer
+  pub fn read(buffer: &mut Buffer) -> Result<Packet, Error> {
     let mut result = Packet::new();
     result.header.read(buffer)?;
 
@@ -50,5 +51,23 @@ impl Packet {
     }
 
     Ok(result)
+  }
+
+  pub fn write(&self, buffer: &mut Buffer) -> Result<(), Error> {
+    self.header.write(buffer)?;
+
+    for question in &self.questions {
+        question.write(buffer)?;
+    }
+    for answer in &self.answers {
+        answer.write(buffer)?;
+    }
+    for authority in &self.authorities {
+        authority.write(buffer)?;
+    }
+    for resource in &self.resources {
+        resource.write(buffer)?;
+    }
+    Ok(())
   }
 }

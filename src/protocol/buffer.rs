@@ -1,5 +1,7 @@
 use std::io::{Error, ErrorKind};
 
+// TODO: remove mutability of the buffer, refactor this module
+
 pub struct Buffer {
   pub buf: [u8; 512],
   pos: usize
@@ -10,6 +12,8 @@ impl Buffer {
   pub fn new() -> Buffer {
     Buffer { buf: [0; 512], pos: 0 }
   }
+
+  pub fn pos(&self) -> usize { self.pos }
 
   fn get(&mut self, pos: usize) -> Result<u8, Error> {
     if pos >= 512 {
@@ -120,11 +124,11 @@ impl Buffer {
       else {
         self.write_u8(label_len as u8)?;
         for byte in label.as_bytes() {
-          self.write_u8(*b)?;
+          self.write_u8(*byte)?;
         }
       }
     }
-    self.write_u8(0);
+    self.write_u8(0)?;
     Ok (())
   }
 }

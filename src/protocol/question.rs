@@ -9,12 +9,7 @@ pub struct Question {
 }
 
 impl Question {
-  pub fn new(name: String, qtype: QueryType) -> Question {
-    Question {
-      name: name,
-      qtype: qtype
-    }
-  }
+  pub fn new(name: String, qtype: QueryType) -> Question { Question { name, qtype } }
 
   pub fn read(&mut self, buffer: &mut Buffer) -> Result<(), Error> {
     buffer.get_domain_name(&mut self.name)?;

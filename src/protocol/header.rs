@@ -27,22 +27,22 @@ pub struct Header {
 impl Header {
   pub fn new() -> Header {
     Header { id: 0,
-                recursion_desired: false,
-                truncated_message: false,
-                authoritative_answer: false,
-                opcode: 0,
-                response: false,
+             recursion_desired: false,
+             truncated_message: false,
+             authoritative_answer: false,
+             opcode: 0,
+             response: false,
 
-                rescode: ResultCode::NOERROR,
-                checking_disabled: false,
-                authed_data: false,
-                z: false,
-                recursion_available: false,
+             rescode: ResultCode::NOERROR,
+             checking_disabled: false,
+             authed_data: false,
+             z: false,
+             recursion_available: false,
 
-                questions: 0,
-                answers: 0,
-                authoritative_entries: 0,
-                resource_entries: 0 }
+             questions: 0,
+             answers: 0,
+             authoritative_entries: 0,
+             resource_entries: 0 }
   }
 
   pub fn read(&mut self, buffer: &mut Buffer) -> Result<(), Error> {
@@ -67,6 +67,27 @@ impl Header {
     self.answers = buffer.read_u16()?;
     self.authoritative_entries = buffer.read_u16()?;
     self.resource_entries = buffer.read_u16()?;
+    Ok(())
+  }
+
+  pub fn write(&self, buffer: &mut Buffer) -> Result<(), Error> {
+    buffer.write_u16(self.id)?;
+    buffer.write_u8((self.recursion_desired as u8) |
+                    ((self.truncated_message as u8) << 1) |
+                    ((self.authoritative_answer as u8) << 2) |
+                    (self.opcode << 3) |
+                    ((self.response as u8) << 7) as u8)?;
+
+    buffer.write_u8((self.rescode.clone() as u8) |
+                    ((self.checking_disabled as u8) << 4) |
+                    ((self.authed_data as u8) << 5) |
+                    ((self.z as u8) << 6) |
+                    ((self.recursion_available as u8) << 7))?;
+
+    buffer.write_u16(self.questions)?;
+    buffer.write_u16(self.answers)?;
+    buffer.write_u16(self.authoritative_entries)?;
+    buffer.write_u16(self.resource_entries)?;
     Ok(())
   }
 }
