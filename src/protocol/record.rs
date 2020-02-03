@@ -1,5 +1,5 @@
 use std::io::Error;
-use std::net::Ipv4Addr;
+use std::net::{Ipv4Addr, Ipv6Addr};
 use crate::protocol::buffer::Buffer;
 use crate::protocol::querytype::QueryType;
 
@@ -15,6 +15,27 @@ pub enum Record {
   A {
     domain_name: String,
     addr: Ipv4Addr,
+    ttl: u32
+  },
+  NS {
+    domain_name: String,
+    host: String,
+    ttl: u32
+  },
+  CNAME {
+    domain_name: String,
+    host: String,
+    ttl: u32
+  },
+  MX {
+    domain_name: String,
+    priority: u16,
+    host: String,
+    ttl: u32
+  },
+  AAAA {
+    domain_name: String,
+    addr: Ipv6Addr,
     ttl: u32
   },
 }
@@ -39,6 +60,37 @@ impl Record {
                                  ((raw_addr >>  0) & 0xFF) as u8);
         Ok(Record::A { domain_name, addr, ttl })
       },
+      QueryType::AAAA => {
+        let raw_addr1 = buffer.read_u32()?;
+        let raw_addr2 = buffer.read_u32()?;
+        let raw_addr3 = buffer.read_u32()?;
+        let raw_addr4 = buffer.read_u32()?;
+        let addr = Ipv6Addr::new((raw_addr1 >> 16) as u16,
+                                 (raw_addr1 & 0xFFFF) as u16,
+                                 (raw_addr2 >> 16) as u16,
+                                 (raw_addr2 & 0xFFFF) as u16,
+                                 (raw_addr3 >> 16) as u16,
+                                 (raw_addr3 & 0xFFFF) as u16,
+                                 (raw_addr4 >> 16) as u16,
+                                 (raw_addr4 & 0xFFFF) as u16);
+        Ok(Record::AAAA { domain_name, addr, ttl })
+      },
+      QueryType::NS => {
+        let mut host = String::new();
+        buffer.get_domain_name(&mut host)?;
+        Ok(Record::NS { domain_name, host, ttl })
+      },
+      QueryType::CNAME => {
+        let mut host = String::new();
+        buffer.get_domain_name(&mut host)?;
+        Ok(Record::CNAME { domain_name, host, ttl })
+      },
+      QueryType::MX => {
+        let priority = buffer.read_u16()?;
+        let mut host = String::new();
+        buffer.get_domain_name(&mut host)?;
+        Ok(Record::MX { domain_name, priority, host, ttl })
+      },
       QueryType::UNKNOWN(_) => {
         Ok(Record::UNKNOWN { domain_name, qtype_num, data_len, ttl })
       }
@@ -62,7 +114,8 @@ impl Record {
         buffer.write_u8(octets[2])?;
         buffer.write_u8(octets[3])?;
       },
-      Record::UNKNOWN { .. } => { println!("Skipping record: {:?}", self); }
+      Record::UNKNOWN { .. } => { println!("Skipping record: {:?}", self); },
+      _ => {  }
     }
     Ok(buffer.pos() - start_pos)
   }

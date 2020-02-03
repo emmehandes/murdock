@@ -37,7 +37,7 @@ fn main() {
     let socket = UdpSocket::bind(("0.0.0.0", 4321)).unwrap();
 
     // Prepare packet
-    let domain_name = "google.com";
+    let domain_name = "cloudflare.com";
     let qtype = QueryType::A;
 
     let mut packet = Packet::new();
