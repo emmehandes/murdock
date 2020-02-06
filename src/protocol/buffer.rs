@@ -3,34 +3,36 @@ use std::io::{Error, ErrorKind};
 // TODO: remove mutability of the buffer, refactor this module
 
 pub struct Buffer {
-  pub buf: [u8; 512],
-  pos: usize
+  pub buf: [u8; Buffer::MAX_SIZE],
+  pos: usize,
 }
 
 impl Buffer {
+  const MAX_SIZE: usize=512;
+  const MAX_LABEL_LEN: usize=0x34;
 
   pub fn new() -> Buffer {
-    Buffer { buf: [0; 512], pos: 0 }
+    Buffer { buf: [0; Buffer::MAX_SIZE], pos: 0}
   }
 
   pub fn pos(&self) -> usize { self.pos }
 
   fn get(&mut self, pos: usize) -> Result<u8, Error> {
-    if pos >= 512 {
+    if pos >= Buffer::MAX_SIZE {
       return Err(Error::new(ErrorKind::InvalidInput, "End of buffer"));
     }
     Ok(self.buf[pos])
   }
 
   fn get_range(&mut self, pos: usize, len: usize) -> Result<&[u8], Error> {
-    if pos + len >= 512 {
+    if pos + len >= Buffer::MAX_SIZE {
         return Err(Error::new(ErrorKind::InvalidInput, "End of buffer"));
     }
     Ok(&self.buf[pos..pos+len as usize])
   }
 
   fn read_u8(&mut self) -> Result<u8, Error> {
-    if self.pos >= 512 {
+    if self.pos >= Buffer::MAX_SIZE {
       return Err(Error::new(ErrorKind::InvalidInput, "End of buffer"));
     }
     let res = self.buf[self.pos];
@@ -51,7 +53,7 @@ impl Buffer {
   }
 
   pub fn write_u8(&mut self, val: u8) -> Result<(), Error> {
-    if self.pos >= 512 {
+    if self.pos >= Buffer::MAX_SIZE {
       return Err(Error::new(ErrorKind::InvalidInput, "End of buffer"));
     }
     self.buf[self.pos] = val;
@@ -118,7 +120,7 @@ impl Buffer {
 
     for label in split_name {
       let label_len = label.len();
-      if label_len > 0x34 {
+      if label_len > Buffer::MAX_LABEL_LEN {
         return Err(Error::new(ErrorKind::InvalidInput, "Single label exceeds 63 characters"));
       }
       else {
