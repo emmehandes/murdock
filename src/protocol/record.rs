@@ -1,7 +1,7 @@
 use std::io::Error;
 use std::net::{Ipv4Addr, Ipv6Addr};
-use crate::protocol::buffer::Buffer;
-use crate::protocol::querytype::QueryType;
+use crate::protocol::Buffer;
+use crate::protocol::QueryType;
 
 #[derive(Debug,Clone,PartialEq,Eq,Hash,PartialOrd,Ord)]
 #[allow(dead_code)]

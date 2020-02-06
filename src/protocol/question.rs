@@ -1,6 +1,6 @@
 use std::io::Error;
-use crate::protocol::querytype::QueryType;
-use crate::protocol::buffer::Buffer;
+use crate::protocol::QueryType;
+use crate::protocol::Buffer;
 
 #[derive(Debug,Clone,PartialEq,Eq)]
 pub struct Question {

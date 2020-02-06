@@ -2,10 +2,10 @@ mod protocol;
 use std::io::Read;
 use std::fs::File;
 use std::net::UdpSocket;
-use crate::protocol::buffer::Buffer;
-use crate::protocol::packet::Packet;
-use crate::protocol::querytype::QueryType;
-use crate::protocol::question::Question;
+use protocol::Buffer;
+use protocol::Packet;
+use protocol::QueryType;
+use protocol::Question;
 
 fn main() {
     // TEST 1
@@ -15,19 +15,19 @@ fn main() {
     f.read(&mut buffer.buf).unwrap();
 
     let packet = Packet::read(&mut buffer).unwrap();
-    println!("{:?}", packet.header);
+    println!("{:#?}", packet.header);
 
     for q in packet.questions {
-        println!("{:?}", q);
+        println!("{:#?}", q);
     }
     for rec in packet.answers {
-        println!("{:?}", rec);
+        println!("{:#?}", rec);
     }
     for rec in packet.authorities {
-        println!("{:?}", rec);
+        println!("{:#?}", rec);
     }
     for rec in packet.resources {
-        println!("{:?}", rec);
+        println!("{:#?}", rec);
     }
 
     // TEST 2
@@ -58,18 +58,18 @@ fn main() {
     socket.recv_from(&mut recv_buffer.buf).unwrap();
 
     let recv_packet = Packet::read(&mut recv_buffer).unwrap();
-    println!("{:?}", recv_packet.header);
+    println!("{:#?}", recv_packet.header);
 
     for q in recv_packet.questions {
-        println!("{:?}", q);
+        println!("{:#?}", q);
     }
     for rec in recv_packet.answers {
-        println!("{:?}", rec);
+        println!("{:#?}", rec);
     }
     for rec in recv_packet.authorities {
-        println!("{:?}", rec);
+        println!("{:#?}", rec);
     }
     for rec in recv_packet.resources {
-        println!("{:?}", rec);
+        println!("{:#?}", rec);
     }
 }
