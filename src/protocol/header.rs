@@ -45,7 +45,7 @@ impl Header {
              resource_entries: 0 }
   }
 
-  pub fn read(&mut self, buffer: &mut Buffer) -> Result<(), Error> {
+  pub fn write(&mut self, buffer: &mut Buffer) -> Result<(), Error> {
     self.id = buffer.read_u16()?;
 
     let flags = buffer.read_u16()?;
@@ -70,7 +70,7 @@ impl Header {
     Ok(())
   }
 
-  pub fn write(&self, buffer: &mut Buffer) -> Result<(), Error> {
+  pub fn read(&self, buffer: &mut Buffer) -> Result<(), Error> {
     buffer.write_u16(self.id)?;
     buffer.write_u8((self.recursion_desired as u8) |
                     ((self.truncated_message as u8) << 1) |

@@ -1,38 +1,40 @@
 use std::io::{Error, ErrorKind};
 
-// TODO: remove mutability of the buffer, refactor this module
-
-pub struct Buffer {
-  pub buf: [u8; Buffer::MAX_SIZE],
+pub struct PacketBuffer<'a> {
+  buf: &'a [u8],
   pos: usize,
 }
 
-impl Buffer {
-  const MAX_SIZE: usize=512;
-  const MAX_LABEL_LEN: usize=0x34;
+impl<'a> PacketBuffer<'a> {
+  pub const MAX_SIZE: usize=512;
+  pub const MAX_LABEL_LEN: usize=0x34;
 
-  pub fn new() -> Buffer {
-    Buffer { buf: [0; Buffer::MAX_SIZE], pos: 0}
+  pub fn build(src: &[u8]) -> PacketBuffer {
+    PacketBuffer { buf: src, pos: 0}
+  }
+
+  pub fn new() -> PacketBuffer<'a>  {
+    PacketBuffer { buf: &[0; PacketBuffer::MAX_SIZE], pos: 0}
   }
 
   pub fn pos(&self) -> usize { self.pos }
 
-  fn get(&mut self, pos: usize) -> Result<u8, Error> {
-    if pos >= Buffer::MAX_SIZE {
+  pub fn get(&self, pos: usize) -> Result<u8, Error> {
+    if pos >= self.buf.len() {
       return Err(Error::new(ErrorKind::InvalidInput, "End of buffer"));
     }
     Ok(self.buf[pos])
   }
 
-  fn get_range(&mut self, pos: usize, len: usize) -> Result<&[u8], Error> {
-    if pos + len >= Buffer::MAX_SIZE {
+  pub fn get_range(&self, pos: usize, len: usize) -> Result<&[u8], Error> {
+    if pos + len >= self.buf.len() {
         return Err(Error::new(ErrorKind::InvalidInput, "End of buffer"));
     }
     Ok(&self.buf[pos..pos+len as usize])
   }
 
-  fn read_u8(&mut self) -> Result<u8, Error> {
-    if self.pos >= Buffer::MAX_SIZE {
+  pub fn read_u8(&mut self) -> Result<u8, Error> {
+    if self.pos >= self.buf.len() {
       return Err(Error::new(ErrorKind::InvalidInput, "End of buffer"));
     }
     let res = self.buf[self.pos];
@@ -52,8 +54,53 @@ impl Buffer {
     Ok(res)
   }
 
+  pub fn read_name(&mut self) -> Result<String,Error> {
+    let mut name = String::new();
+    let mut pos = self.pos;
+    let mut delim = "";
+    let mut jump = false;
+
+    loop{
+      let len = self.get(pos)?;
+      pos += 1;
+
+      if len == 0 {
+        break;
+      }
+      else if (len & 0xC0) == 0xC0 {
+          // Check if a jump is needed
+          if !jump {
+            self.pos += 1;
+          }
+
+          // Perform jump
+          let byte2 = self.get(pos)? as u16;
+          let offset = (((len as u16) ^ 0xC0) << 8) | byte2;
+          pos = offset as usize;
+          jump = true;
+      }
+      else {
+        // Build domain name
+        let word = self.get_range(pos, len as usize)?;
+
+        name.push_str(delim);
+        name.push_str(&String::from_utf8_lossy(word).to_lowercase());
+        delim = ".";
+
+        pos += len as usize;
+      }
+    }
+
+    if !jump {
+      self.pos = pos;
+    }
+
+    Ok(name)
+  }
+
+
   pub fn write_u8(&mut self, val: u8) -> Result<(), Error> {
-    if self.pos >= Buffer::MAX_SIZE {
+    if self.pos >= self.buf.len() {
       return Err(Error::new(ErrorKind::InvalidInput, "End of buffer"));
     }
     self.buf[self.pos] = val;
@@ -73,54 +120,12 @@ impl Buffer {
     Ok(())
   }
 
-  pub fn get_domain_name(&mut self, domain_name: &mut String) -> Result<(),Error> {
-    let mut pos = self.pos;
-    let mut delim = "";
-    let mut jump = false;
-
-    loop{
-      let len = self.get(pos)?;
-      pos += 1;
-
-      if len == 0 {
-        break;
-      }
-      else if (len & 0xC0) == 0xC0 {
-          // Check if a jump is needed
-          if !jump {
-            self.pos = pos+1;
-          }
-
-          // Perform jump
-          let byte2 = self.get(pos)? as u16;
-          let offset = (((len as u16) ^ 0xC0) << 8) | byte2;
-          pos = offset as usize;
-          jump = true;
-      }
-      else {
-        // Build domain name
-        let word = self.get_range(pos, len as usize)?;
-
-        domain_name.push_str(delim);
-        domain_name.push_str(&String::from_utf8_lossy(word).to_lowercase());
-        delim = ".";
-
-        pos += len as usize;
-      }
-    }
-
-    if !jump {
-      self.pos = pos;
-    }
-    Ok(())
-  }
-
-  pub fn set_domain_name(&mut self, domain_name: &str) -> Result<(),Error> {
-    let split_name = domain_name.split('.').collect::<Vec<&str>>();
+  pub fn write_name(&mut self, name: &str) -> Result<(),Error> {
+    let split_name = name.split('.').collect::<Vec<&str>>();
 
     for label in split_name {
       let label_len = label.len();
-      if label_len > Buffer::MAX_LABEL_LEN {
+      if label_len > PacketBuffer::MAX_LABEL_LEN {
         return Err(Error::new(ErrorKind::InvalidInput, "Single label exceeds 63 characters"));
       }
       else {

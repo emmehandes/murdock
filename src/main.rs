@@ -11,10 +11,10 @@ fn main() {
     // TEST 1
     println!("\n------------------------ TEST PACKET PARSING");
     let mut f = File::open("response_packet.txt").unwrap();
-    let mut buffer = Buffer::new();
-    f.read(&mut buffer.buf).unwrap();
+    let mut buffer = [0u8; Buffer::MAX_SIZE];
+    f.read(&mut buffer).unwrap();
 
-    let packet = Packet::read(&mut buffer).unwrap();
+    let packet = Packet::from_array(&buffer);
     println!("{:#?}", packet.header);
 
     for q in packet.questions {
@@ -50,7 +50,7 @@ fn main() {
     packet.write(&mut send_buffer).unwrap();
 
     // send packet
-    socket.send_to(&send_buffer.buf[0..send_buffer.pos()], server).unwrap();
+    socket.send_to(send_buffer.get_range(0, send_buffer.pos()).unwrap(), server).unwrap();
 
 
     // ----------------- RECEIVE ---------------------------

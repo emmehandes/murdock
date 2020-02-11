@@ -1,5 +1,5 @@
 use std::io::Error;
-use crate::protocol::Buffer;
+use crate::protocol::PacketBuffer;
 use crate::protocol::Header;
 use crate::protocol::Question;
 use crate::protocol::QueryType;
@@ -25,48 +25,43 @@ impl Packet {
     }
   }
 
-  // TODO: remove mutability of the buffer, a reading should not alter the buffer
-  pub fn read(buffer: &mut Buffer) -> Result<Packet, Error> {
-    let mut result = Packet::new();
-    result.header.read(buffer)?;
+  pub fn write(&mut self, array: &[u8]) -> Result<(), Error> {
+    let mut packet_buffer = PacketBuffer::build(array);
+    self.header.write(packet_buffer)?;
 
-    for _ in 0..result.header.questions {
-        let mut question = Question::new("".to_string(),
-                                         QueryType::UNKNOWN(0));
-        question.read(buffer)?;
-        result.questions.push(question);
+    for _ in 0..self.header.questions {
+        let mut question = Question::new();
+        question.write(packet_buffer)?;
+        self.questions.push(question);
     }
 
-    for _ in 0..result.header.answers {
-        let rec = Record::read(buffer)?;
-        result.answers.push(rec);
+    for _ in 0..self.header.answers {
+        self.answers.push(Record::build(packet_buffer)?);
     }
-    for _ in 0..result.header.authoritative_entries {
-        let rec = Record::read(buffer)?;
-        result.authorities.push(rec);
+    for _ in 0..self.header.authoritative_entries {
+        self.authorities.push(Record::build(packet_buffer)?);
     }
-    for _ in 0..result.header.resource_entries {
-        let rec = Record::read(buffer)?;
-        result.resources.push(rec);
+    for _ in 0..self.header.resource_entries {
+        self.resources.push(Record::build(packet_buffer)?);
     }
 
-    Ok(result)
+    Ok(())
   }
 
-  pub fn write(&self, buffer: &mut Buffer) -> Result<(), Error> {
-    self.header.write(buffer)?;
+  pub fn read(&self, buffer: &mut PacketBuffer) -> Result<(), Error> {
+    self.header.read(buffer)?;
 
     for question in &self.questions {
-        question.write(buffer)?;
+        question.read(buffer)?;
     }
     for answer in &self.answers {
-        answer.write(buffer)?;
+        answer.read(buffer)?;
     }
     for authority in &self.authorities {
-        authority.write(buffer)?;
+        authority.read(buffer)?;
     }
     for resource in &self.resources {
-        resource.write(buffer)?;
+        resource.read(buffer)?;
     }
     Ok(())
   }
