@@ -1,6 +1,7 @@
-use std::io::{Error, ErrorKind};
+use std::io::Error;
 use std::net::{Ipv4Addr, Ipv6Addr};
-use crate::protocol::Buffer;
+use crate::protocol::Reader;
+use crate::protocol::Writer;
 use crate::protocol::QueryType;
 
 #[derive(Debug,Clone,PartialEq,Eq,Hash,PartialOrd,Ord)]
@@ -41,18 +42,18 @@ pub enum Record {
 }
 
 impl Record {
-  pub fn build(buffer: &mut Buffer) -> Result<Record, Error> {
-    let name = buffer.read_name()?;
+  pub fn build(reader: &Reader) -> Result<Record, Error> {
+    let name = reader.read_name()?;
 
-    let qtype_num = buffer.read_u16()?;
+    let qtype_num = reader.read_u16()?;
     let qtype = QueryType::from_num(qtype_num);
-    let _ = buffer.read_u16()?; //class is ignored
-    let ttl = buffer.read_u32()?;
-    let data_len = buffer.read_u16()?;
+    let _ = reader.read_u16()?; //class is ignored
+    let ttl = reader.read_u32()?;
+    let data_len = reader.read_u16()?;
 
     match qtype {
       QueryType::A => {
-        let raw_addr = buffer.read_u32()?;
+        let raw_addr = reader.read_u32()?;
         let addr = Ipv4Addr::new(((raw_addr >> 24) & 0xFF) as u8,
                                  ((raw_addr >> 16) & 0xFF) as u8,
                                  ((raw_addr >>  8) & 0xFF) as u8,
@@ -60,10 +61,10 @@ impl Record {
         Ok(Record::A { name, addr, ttl })
       },
       QueryType::AAAA => {
-        let raw_addr1 = buffer.read_u32()?;
-        let raw_addr2 = buffer.read_u32()?;
-        let raw_addr3 = buffer.read_u32()?;
-        let raw_addr4 = buffer.read_u32()?;
+        let raw_addr1 = reader.read_u32()?;
+        let raw_addr2 = reader.read_u32()?;
+        let raw_addr3 = reader.read_u32()?;
+        let raw_addr4 = reader.read_u32()?;
         let addr = Ipv6Addr::new((raw_addr1 >> 16) as u16,
                                  (raw_addr1 & 0xFFFF) as u16,
                                  (raw_addr2 >> 16) as u16,
@@ -75,16 +76,16 @@ impl Record {
         Ok(Record::AAAA { name, addr, ttl })
       },
       QueryType::NS => {
-        let host = buffer.read_name()?;
+        let host = reader.read_name()?;
         Ok(Record::NS { name, host, ttl })
       },
       QueryType::CNAME => {
-        let host = buffer.read_name()?;
+        let host = reader.read_name()?;
         Ok(Record::CNAME { name, host, ttl })
       },
       QueryType::MX => {
-        let priority = buffer.read_u16()?;
-        let host = buffer.read_name()?;
+        let priority = reader.read_u16()?;
+        let host = reader.read_name()?;
         Ok(Record::MX { name, priority, host, ttl })
       },
       QueryType::UNKNOWN(_) => {
@@ -93,26 +94,26 @@ impl Record {
     }
   }
 
-  pub fn read(&self, buffer: &mut Buffer) -> Result<usize, Error> {
-    let start_pos = buffer.pos();
+  pub fn read(&self, writer: &mut Writer) -> Result<usize, Error> {
+    let start_pos = writer.pos();
 
     match *self {
       Record::A { ref name, ref addr, ttl } => {
-        buffer.write_name(name)?;
-        buffer.write_u16(QueryType::A.to_num())?;
-        buffer.write_u16(1)?;
-        buffer.write_u32(ttl)?;
-        buffer.write_u16(4)?;
+        writer.write_name(name)?;
+        writer.write_u16(QueryType::A.to_num())?;
+        writer.write_u16(1)?;
+        writer.write_u32(ttl)?;
+        writer.write_u16(4)?;
 
         let octets = addr.octets();
-        buffer.write_u8(octets[0])?;
-        buffer.write_u8(octets[1])?;
-        buffer.write_u8(octets[2])?;
-        buffer.write_u8(octets[3])?;
+        writer.write_u8(octets[0])?;
+        writer.write_u8(octets[1])?;
+        writer.write_u8(octets[2])?;
+        writer.write_u8(octets[3])?;
       },
       Record::UNKNOWN { .. } => { println!("Skipping record: {:?}", self); },
       _ => {  }
     }
-    Ok(buffer.pos() - start_pos)
+    Ok(writer.pos() - start_pos)
   }
 }

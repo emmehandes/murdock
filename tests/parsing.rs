@@ -1,13 +1,14 @@
-mod protocol;
 use std::io::Read;
 use std::fs::File;
 use std::net::UdpSocket;
-use protocol::Limits;
-use protocol::Packet;
-use protocol::QueryType;
-use protocol::Question;
 
-fn main() {
+use murdock::protocol::Limits;
+use murdock::protocol::Packet;
+use murdock::protocol::QueryType;
+use murdock::protocol::Question;
+
+#[test]
+fn parsing_from_text() {
     // TEST 1
     println!("\n------------------------ TEST PACKET PARSING");
     let mut f = File::open("response_packet.txt").unwrap();
@@ -30,7 +31,10 @@ fn main() {
     for rec in packet.resources {
         println!("{:#?}", rec);
     }
+}
 
+#[test]
+fn parsing_from_query() {
     // TEST 2
     // ----------------- SEND ------------------------------
     println!("\n------------------------ TEST SEND/RCV");

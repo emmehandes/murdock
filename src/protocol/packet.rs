@@ -1,8 +1,8 @@
 use std::io::Error;
-use crate::protocol::PacketBuffer;
+use crate::protocol::Reader;
+use crate::protocol::Writer;
 use crate::protocol::Header;
 use crate::protocol::Question;
-use crate::protocol::QueryType;
 use crate::protocol::Record;
 
 #[derive(Clone, Debug)]
@@ -26,42 +26,43 @@ impl Packet {
   }
 
   pub fn write(&mut self, array: &[u8]) -> Result<(), Error> {
-    let mut packet_buffer = PacketBuffer::build(array);
-    self.header.write(packet_buffer)?;
+    let reader = Reader::new(array);
+    self.header.write(&reader)?;
 
     for _ in 0..self.header.questions {
         let mut question = Question::new();
-        question.write(packet_buffer)?;
+        question.write(&reader)?;
         self.questions.push(question);
     }
 
     for _ in 0..self.header.answers {
-        self.answers.push(Record::build(packet_buffer)?);
+        self.answers.push(Record::build(&reader)?);
     }
     for _ in 0..self.header.authoritative_entries {
-        self.authorities.push(Record::build(packet_buffer)?);
+        self.authorities.push(Record::build(&reader)?);
     }
     for _ in 0..self.header.resource_entries {
-        self.resources.push(Record::build(packet_buffer)?);
+        self.resources.push(Record::build(&reader)?);
     }
 
     Ok(())
   }
 
-  pub fn read(&self, buffer: &mut PacketBuffer) -> Result<(), Error> {
-    self.header.read(buffer)?;
+  pub fn read(&self, array: &mut [u8]) -> Result<(), Error> {
+    let mut writer = Writer::new(array);
+    self.header.read(&mut writer)?;
 
     for question in &self.questions {
-        question.read(buffer)?;
+        question.read(&mut writer)?;
     }
     for answer in &self.answers {
-        answer.read(buffer)?;
+        answer.read(&mut writer)?;
     }
     for authority in &self.authorities {
-        authority.read(buffer)?;
+        authority.read(&mut writer)?;
     }
     for resource in &self.resources {
-        resource.read(buffer)?;
+        resource.read(&mut writer)?;
     }
     Ok(())
   }

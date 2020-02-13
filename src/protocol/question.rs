@@ -1,6 +1,7 @@
 use std::io::Error;
 use crate::protocol::QueryType;
-use crate::protocol::Buffer;
+use crate::protocol::Reader;
+use crate::protocol::Writer;
 
 #[derive(Debug,Clone,PartialEq,Eq)]
 pub struct Question {
@@ -9,15 +10,24 @@ pub struct Question {
 }
 
 impl Question {
-  pub fn from_buffer(buffer: &mut Buffer) -> Result<Question, Error> {
-    Question{ name: buffer.read_name()?,
-              qtype: QueryType::from_num(buffer.read_u16()?)}
+  pub fn new() -> Question {
+    Question { name: "".to_string(), qtype: QueryType::UNKNOWN(0) }
   }
 
-  pub fn to_buffer(&self, buffer: &mut Buffer) -> Result<(), Error> {
-    buffer.write_name(&self.name)?;
-    buffer.write_u16(self.qtype.to_num())?;
-    buffer.write_u16(1)?;
+  pub fn build(name: &str, qtype: QueryType) -> Question {
+    Question { name: name.to_string(), qtype }
+  }
+
+  pub fn write(&mut self, reader: &Reader) -> Result<(), Error> {
+    self.name = reader.read_name()?;
+    self.qtype = QueryType::from_num(reader.read_u16()?);
+    Ok(())
+  }
+
+  pub fn read(&self, writer: &mut Writer) -> Result<(), Error> {
+    writer.write_name(&self.name)?;
+    writer.write_u16(self.qtype.to_num())?;
+    writer.write_u16(1)?;
     Ok(())
   }
 }

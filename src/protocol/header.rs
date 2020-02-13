@@ -1,9 +1,9 @@
 use std::io::Error;
 use crate::protocol::ResultCode;
-use crate::protocol::Buffer;
+use crate::protocol::Writer;
+use crate::protocol::Reader;
 
-
-#[derive(Clone,Debug)]
+#[derive(Clone, Debug)]
 pub struct Header {
   pub id: u16,
   pub recursion_desired: bool,
@@ -45,10 +45,10 @@ impl Header {
              resource_entries: 0 }
   }
 
-  pub fn write(&mut self, buffer: &mut Buffer) -> Result<(), Error> {
-    self.id = buffer.read_u16()?;
+  pub fn write(&mut self, reader: &Reader) -> Result<(), Error> {
+    self.id = reader.read_u16()?;
 
-    let flags = buffer.read_u16()?;
+    let flags = reader.read_u16()?;
     let a = (flags >> 8) as u8;
     let b = (flags & 0xFF) as u8;
     self.recursion_desired = (a & (1 << 0)) > 0;
@@ -63,31 +63,31 @@ impl Header {
     self.z = (b & (1 << 6)) > 0;
     self.recursion_available = (b & (1 << 7)) > 0;
 
-    self.questions = buffer.read_u16()?;
-    self.answers = buffer.read_u16()?;
-    self.authoritative_entries = buffer.read_u16()?;
-    self.resource_entries = buffer.read_u16()?;
+    self.questions = reader.read_u16()?;
+    self.answers = reader.read_u16()?;
+    self.authoritative_entries = reader.read_u16()?;
+    self.resource_entries = reader.read_u16()?;
     Ok(())
   }
 
-  pub fn read(&self, buffer: &mut Buffer) -> Result<(), Error> {
-    buffer.write_u16(self.id)?;
-    buffer.write_u8((self.recursion_desired as u8) |
+  pub fn read(&self, writer: &mut Writer) -> Result<(), Error> {
+    writer.write_u16(self.id)?;
+    writer.write_u8((self.recursion_desired as u8) |
                     ((self.truncated_message as u8) << 1) |
                     ((self.authoritative_answer as u8) << 2) |
                     (self.opcode << 3) |
                     ((self.response as u8) << 7) as u8)?;
 
-    buffer.write_u8((self.rescode.clone() as u8) |
+    writer.write_u8((self.rescode.clone() as u8) |
                     ((self.checking_disabled as u8) << 4) |
                     ((self.authed_data as u8) << 5) |
                     ((self.z as u8) << 6) |
                     ((self.recursion_available as u8) << 7))?;
 
-    buffer.write_u16(self.questions)?;
-    buffer.write_u16(self.answers)?;
-    buffer.write_u16(self.authoritative_entries)?;
-    buffer.write_u16(self.resource_entries)?;
+    writer.write_u16(self.questions)?;
+    writer.write_u16(self.answers)?;
+    writer.write_u16(self.authoritative_entries)?;
+    writer.write_u16(self.resource_entries)?;
     Ok(())
   }
 }
