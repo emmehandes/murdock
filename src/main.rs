@@ -3,11 +3,10 @@ use std::io::Error;
 use std::net::UdpSocket;
 use protocol::Limits;
 use protocol::Packet;
-use protocol::QueryType;
 use protocol::Question;
 use protocol::ResultCode;
 
-fn lookup(qname: &str, qtype: QueryType, server: (&str, u16)) -> Result<Packet, Error> {
+fn lookup(question: &Question, server: (&str, u16)) -> Result<Packet, Error> {
     let mut request: [u8; Limits::Size as usize] = [0; Limits::Size as usize];
     let mut response: [u8; Limits::Size as usize] = [0; Limits::Size as usize];
     let mut packet = Packet::new();
@@ -16,7 +15,7 @@ fn lookup(qname: &str, qtype: QueryType, server: (&str, u16)) -> Result<Packet, 
     packet.header.id = 6666;
     packet.header.questions = 1;
     packet.header.recursion_desired = true;
-    packet.questions.push(Question::build(&qname.to_string(), qtype));
+    packet.questions.push(question.clone());
     packet.read(&mut request)?;
 
     socket.send_to(&mut request, server).unwrap();
@@ -41,7 +40,7 @@ fn main() {
                 continue;
             }
         };
-        request.read(&mut array).expect("Failed to parse UDP query packet");
+        request.write(&mut array).expect("Failed to parse UDP query packet");
 
         let mut response = Packet::new();
         response.header.id = request.header.id;
@@ -55,6 +54,30 @@ fn main() {
         else {
             let question = &request.questions[0];
             println!("Received query: {:?}", question);
+
+            if let Ok(result) = lookup(&question, server) {
+                response.questions.push(question.clone());
+                response.header.rescode = result.header.rescode;
+
+                for record in result.answers {
+                    println!("Answer: {:?}", record);
+                    response.answers.push(record);
+                }
+                for record in result.authorities {
+                    println!("Answer: {:?}", record);
+                    response.authorities.push(record);
+                }
+                for record in result.resources {
+                    println!("Answer: {:?}", record);
+                    response.resources.push(record);
+                }
+            }
+            else {
+                response.header.rescode = ResultCode::SERVERFAIL;
+            }
+
+            array.clear();
+            let mut result =
         }
     }
 }
